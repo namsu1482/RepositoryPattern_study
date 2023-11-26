@@ -16,7 +16,29 @@
 
 package com.example.android.devbyteviewer.repository
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Transformations
+import com.example.android.devbyteviewer.database.VideosDatabase
+import com.example.android.devbyteviewer.database.asDomainModel
+import com.example.android.devbyteviewer.domain.DevByteVideo
+import com.example.android.devbyteviewer.network.DevByteNetwork
+import com.example.android.devbyteviewer.network.asDatabaseModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 /**
  * Repository for fetching devbyte videos from the network and storing them on disk
  */
-// TODO: Implement the VideosRepository class
+class VideosRepository(private val dataBase:VideosDatabase){
+    // TransFomrations는 liveData 를 또다른 LiveData객체로 변환 ( 활성화된 Activity, fragment에서만 계산됨)
+    val videos:LiveData<List<DevByteVideo>> = Transformations.map(dataBase.videoDao.getVideos()){
+        it.asDomainModel()
+    }
+    suspend fun refreshVideo(){
+        withContext(Dispatchers.IO){
+            val playList = DevByteNetwork.devbytes.getPlaylist()
+            dataBase.videoDao.insertAll(playList.asDatabaseModel())
+        }
+    }
+
+}
